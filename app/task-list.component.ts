@@ -12,7 +12,7 @@ import { DonePipe } from './done.pipe';
   pipes: [DonePipe],
   directives: [TaskComponent, EditTaskDetailsComponent, NewTaskComponent],
   template: `
-  <select (change)="onChange($event.target.value)">
+  <select (change)="onChange($event.target.value)" class="filter">
     <option value="all">Show All</option>
     <option value="done">Show Done</option>
     <option value="notDone" selected="selected">Show Not Done</option>
@@ -38,12 +38,10 @@ export class TaskListComponent {
     this.onTaskSelect = new EventEmitter();
   }
   taskClicked(clickedTask: Task): void {
-    console.log('child', clickedTask);
     this.selectedTask = clickedTask;
     this.onTaskSelect.emit(clickedTask);
   }
   createTask(description: string): void {
-    console.log("Hello, I'm createTask");
     this.taskList.push(
       new Task(description, this.taskList.length)
     );
