@@ -3,20 +3,22 @@ import {Task} from './task.model';
 
 @Component({
   selector: 'new-task',
+  outputs: ['onSubmitNewTask'],
   template: `
   <div class="task-form">
     <h3>Create Task:</h3>
-    <input placeholder="Description" class="col-sm-8 input-lg">
-    <button (click)="addTask()">Add</button>
+    <input placeholder="Description" class="col-sm-8 input-lg" #newDescription>
+    <button (click)="addTask(newDescription)" class="btn-success btn-lg add-button">Add</button>
   </div>
   `
 })
 export class NewTaskComponent {
-  public onSubmitNewTask: EventEmitter<Task>;
+  public onSubmitNewTask: EventEmitter<String>;
   constructor(){
     this.onSubmitNewTask = new EventEmitter();
   }
-  addTask(){
-    console.log("Creating task...");
+  addTask(newDescription: HTMLInputElement){
+    this.onSubmitNewTask.emit(newDescription.value);
+    newDescription.value = '';
   }
 }
