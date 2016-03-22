@@ -8,17 +8,24 @@ import {Task} from './task.model';
   <div class="task-form">
     <h3>Create Task:</h3>
     <input placeholder="Description" class="col-sm-8 input-lg" #newDescription>
-    <button (click)="addTask(newDescription)" class="btn-success btn-lg add-button">Add</button>
+    <select class="filter" #newPriority>
+      <option value="low">Low</option>
+      <option value="medium">Medium</option>
+      <option value="high" selected="selected">High</option>
+    </select>
+    <button (click)="addTask(newDescription, newPriority)" class="btn-success btn-lg add-button">Add</button>
   </div>
   `
 })
 export class NewTaskComponent {
-  public onSubmitNewTask: EventEmitter<String>;
+  public onSubmitNewTask: EventEmitter<Task>;
   constructor(){
     this.onSubmitNewTask = new EventEmitter();
   }
-  addTask(newDescription: HTMLInputElement){
-    this.onSubmitNewTask.emit(newDescription.value);
+  addTask(newDescription: HTMLInputElement, newPriority: HTMLSelectElement){
+    console.log(newPriority.value);
+    var newTask: Task = new Task(newDescription.value, newPriority.value, -1);
+    this.onSubmitNewTask.emit(newTask);
     newDescription.value = '';
   }
 }
