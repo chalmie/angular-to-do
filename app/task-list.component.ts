@@ -22,7 +22,7 @@ import { DonePipe } from './done.pipe';
     [class.selected]="currentTask === selectedTask"
     [task]="currentTask">
   </task-display>
-  <edit-task-details *ngIf="selectedTask" [task]="selectedTask">
+  <edit-task-details *ngIf="selectedTask" [task]="selectedTask" (click)="editTask($event)">
   </edit-task-details><br>
   <new-task (onSubmitNewTask)="createTask($event)">
   </new-task>
@@ -48,5 +48,8 @@ export class TaskListComponent {
   }
   onChange(filterOption) {
     this.filterDone = filterOption;
+  }
+  editTask(newTask) {
+    console.log("Emitter connected", newTask);
   }
 }
