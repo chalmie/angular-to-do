@@ -1,19 +1,11 @@
-// ==================================
-// **********************************
-//   Includes (dependencies of gulp)
-// ==================================
+////////////////////// DEPENDENCIES AND VARIABLES //////////////////////
+
 var gulp = require('gulp');
-var browserify = require('browserify');
+
+// used for concatenating/minifying bower files and other js/css
 var concat = require('gulp-concat');
-var del = require('del');
-var jshint = require('gulp-jshint');
-var sass = require('gulp-sass');
-var source = require('vinyl-source-stream');
-var sourcemaps = require('gulp-sourcemaps');
 var uglify = require('gulp-uglify');
-var utilities = require('gulp-util');
-var browserSync = require('browser-sync').create();
-    // override is required for bootstrap to work correctly
+// used for pulling in bower files.
 var lib = require('bower-files')({
   "overrides":{
     "bootstrap" : {
@@ -26,102 +18,125 @@ var lib = require('bower-files')({
   }
 });
 
-// Set build env from command line
-// Required to control whether the final build is minified
+// used for build and clean tasks.
+var utilities = require('gulp-util');
 var buildProduction = utilities.env.production;
+var del = require('del');
 
-// ==================================
-// **********************************
-//               Tasks
-// Note: Serve is designed to run all
-// other tasks including build, lint,
-// launch server, and initiate
-// browser-sync
-// ==================================
-// start server, runs all builds, sets up watch, cleans tmp file
-gulp.task('serve', ['buildStart'], function(){
-  gulp.start('jshint');
-  browserSync.init({
-    server: {
-      baseDir: "./",
-      index: "index.html"
-    }
-  });
-  gulp.watch('./js/*.js', ['jsBrowserify', 'reload']);
-  gulp.watch('./*.html', ['reload']);
-  gulp.watch('./scss/*.scss', ['cssBuild', 'reload']);
-  gulp.start('removeTmp');
+// set up server with watchers and run typescript compiler in the shell.
+var browserSync = require('browser-sync').create();
+var shell = require('gulp-shell');
+
+// sass dependencies.
+var sass = require('gulp-sass');
+var sourcemaps = require('gulp-sourcemaps');
+
+
+
+////////////////////// TYPESCRIPT //////////////////////
+
+// clean task
+gulp.task('tsClean', function(){
+  return del(['app/*.js', 'app/*.js.map']);
 });
 
-// Reloads the browser window, used by gulp.watch
-gulp.task('reload', function() {
-  browserSync.reload();
+// clean and then compile once. To be called from server and global build.
+gulp.task('ts', ['tsClean'], shell.task([
+  'tsc'
+]));
+
+////////////////////// BOWER //////////////////////
+// when adding a new bower depndency:
+// stop the server
+// always use the `bower install --save` flag.
+// run `gulp bower` to build vendor files
+// restart server.
+
+gulp.task('jsBowerClean', function(){
+  return del(['./build/js/vendor.min.js']);
 });
 
-// initial clean files, clears build, clears tmp (in case it was not already deleted)
-gulp.task('initialClean', function(){
-  return del(['build', 'tmp']);
-});
-
-// removed tmp file, runs at end of serve after all builds finish (hopefully)
-gulp.task('removeTmp', function(){
-  return del(['tmp']);
-});
-
-// starts initial clean before all builds fires off
-gulp.task('buildStart', ['initialClean'], function() {
-  gulp.start('buildAll');
-});
-
-// starts cssBuild (sass), bowerBuild (front-end dependencies), and jsBrowserify (js)
-gulp.task('buildAll', ['cssBuild', 'bowerBuild', 'jsBrowserify']);
-
-// compile sass/scss, builds css files
-gulp.task('cssBuild', function() {
-  return gulp.src('scss/*.scss')
-    .pipe(sourcemaps.init())
-    .pipe(sass())
-    .pipe(sourcemaps.write())
-    .pipe(gulp.dest('./build/css'));
-});
-
-// will run JS and CSS for bower (front-end dependencies)
-gulp.task('bowerBuild', ['bowerJS', 'bowerCSS']);
-
-// front end dependencies js
-gulp.task('bowerJS', function () {
+gulp.task('jsBower', ['jsBowerClean'], function() {
   return gulp.src(lib.ext('js').files)
     .pipe(concat('vendor.min.js'))
     .pipe(uglify())
     .pipe(gulp.dest('./build/js'));
 });
 
-// front end dependencies css
-gulp.task('bowerCSS', function () {
+gulp.task('cssBowerClean', function(){
+  return del(['./build/css/vendor.css']);
+});
+
+gulp.task('cssBower', ['cssBowerClean'], function() {
   return gulp.src(lib.ext('css').files)
     .pipe(concat('vendor.css'))
     .pipe(gulp.dest('./build/css'));
 });
 
-// Takes concatenated JS and browserify's it
-gulp.task('jsBrowserify' , ['concat', 'jshint'] , function() {
-  return browserify({ entries: ['./tmp/allConcat.js']})
-  .bundle()
-  .pipe(source('app.js'))
-  .pipe(gulp.dest('./build/js'));
+gulp.task('bower', ['jsBower', 'cssBower']);
+
+////////////////////// SASS //////////////////////
+
+gulp.task('sassBuild', function() {
+  return gulp.src(['resources/styles/*'])
+    .pipe(sourcemaps.init())
+    .pipe(sass())
+    .pipe(sourcemaps.write())
+    .pipe(gulp.dest('./build/css'));
 });
 
-// concat all js files, puts in tmp
-gulp.task('concat', function() {
-  return gulp.src(['./js/*.js'])
-  .pipe(concat('allConcat.js'))
-  .pipe(gulp.dest('./tmp'));
+////////////////////// SERVER //////////////////////
+
+gulp.task('serve', function() {
+  browserSync.init({
+    server: {
+      baseDir: "./",
+      index: "index.html"
+    }
+  });
+  gulp.watch(['resources/js/*.js'], ['jsBuild']); // vanilla js changes, reload.
+  gulp.watch(['*.html'], ['htmlBuild']); // html changes, reload.
+  gulp.watch(['resources/styles/*.css', 'resources/styles/*.scss'], ['cssBuild']); // css or sass changes, concatenate all css/sass, build, reload.
+  gulp.watch(['app/*.ts'], ['tsBuild']); // typescript files change, compile then reload.
 });
 
-// linter
-gulp.task('jshint', function(){
-  return gulp.src(['js/*.js'])
-    .pipe(jshint())
-    .pipe(jshint.reporter('jshint-stylish'))
-    .pipe(jshint.reporter('fail'));
+gulp.task('jsBuild', function(){
+  browserSync.reload();
 });
+
+gulp.task('htmlBuild', function(){
+  browserSync.reload();
+});
+
+gulp.task('cssBuild', ['sassBuild'], function(){
+  browserSync.reload();
+});
+
+gulp.task('tsBuild', ['ts'], function(){
+  browserSync.reload();
+});
+
+////////////////////// GLOBAL BUILD TASK //////////////////////
+
+// global build task with individual clean tasks as dependencies.
+gulp.task('build', ['ts'], function(){
+  // we can use the buildProduction environment variable here later.
+  gulp.start('bower');
+  gulp.start('sassBuild');
+});
+
+////////////////////// SETUP NOTES //////////////////////
+
+/*
+- clone repo
+- npm install
+- bower install
+- install globals if needed (gulp, bower, sass, typescript, typescript packages.)
+  - npm install gulp -g
+  - npm install bower -g
+  - gem install sass
+  - npm install typescript -g
+  - apm install atom-typescript
+- gulp build
+- gulp serve
+*/

@@ -1,5 +1,5 @@
 {
-  "name": "project title",
+  "name": "to do",
   "description": "",
   "main": "index.js",
   "authors": [
@@ -13,7 +13,9 @@
     "node_modules",
     "bower_components",
     "build",
-    "tmp"
+    "tmp",
+    "test",
+    "tests"
   ],
   "dependencies": {
     "jquery": "^2.2.1",
