@@ -17,7 +17,7 @@ import { DonePipe } from './done.pipe';
     <option value="done">Show Done</option>
     <option value="notDone" selected="selected">Show Not Done</option>
   </select>
-  <task-display *ngFor="#currentTask of taskList"
+  <task-display *ngFor="#currentTask of taskList | done:filterDone"
     (click)="taskClicked(currentTask)"
     [class.selected]="currentTask === selectedTask"
     [task]="currentTask">
@@ -50,6 +50,5 @@ export class TaskListComponent {
   }
   onChange(filterOption) {
     this.filterDone = filterOption;
-    console.log(this.filterDone);
   }
 }
